@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>الدكاترة</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <strong>AYLACLINIC</strong>
+  <a style="color: aliceblue;"    href="index.html">الرئيسية</a>
+</nav>
+</header>
+
+<div class="container">
+  <h2>فريقنا الطبي</h2>
+
+  <div class="grid" id="doctorsGrid">
+    <a href="thedoctor.html" class="card">
+      <img src="doctor1.jpg">
+      <h3>د. آية</h3>
+      <p>جلدية وتجميل</p>
+    </a>
+
+    <a href="thedoctor.html" class="card">
+      <img src="doctor2.jpg">
+      <h3>د. محمد</h3>
+      <p>تجميل غير جراحي</p>
+    </a>
+
+    <a href="thedoctor.html" class="card">
+      <img src="doctor3.jpg">
+      <h3>د. سارة</h3>
+      <p>تغذية علاجية</p>
+    </a>
+  </div>
+
+  <!-- لوحة الأدمن (مخفية ولا تظهر إلا إذا role=admin) -->
+  <div id="adminDoctorsPanel" class="card" style="display:none;margin-top:20px">
+    <h2 style="margin-top:0">لوحة الأدمن – تعديل الدكاترة</h2>
+    <div id="adminDoctorsEditor"></div>
+    <button id="saveDoctorsBtn" style="width:100%;margin-top:10px">حفظ التعديلات</button>
+    <p id="adminDoctorsMsg" style="text-align:center;margin-top:10px"></p>
+  </div>
+
+</div>
+
+<footer>
+  <p>© AYLACLINIC</p>
+</footer>
+
+<script>
+document.addEventListener("DOMContentLoaded", ()=>{
+  const role = localStorage.getItem("role");
+  if(!role){
+    window.location.replace("login.html");
+  }
+});
+</script>
+
+<!-- ===== إضافة الأدمن بدون تغيير التصميم ===== -->
+<script>
+document.addEventListener("DOMContentLoaded", ()=>{
+  const role = localStorage.getItem("role");
+
+  // نفس الموجود بالصفحة افتراضيًا
+  const DEFAULT_DOCTORS = [
+    { id:"doctor1", img:"doctor1.jpg", name:"د. آية",   specialty:"جلدية وتجميل" },
+    { id:"doctor2", img:"doctor2.jpg", name:"د. محمد",  specialty:"تجميل غير جراحي" },
+    { id:"doctor3", img:"doctor3.jpg", name:"د. سارة",  specialty:"تغذية علاجية" },
+  ];
+
+  function normalizeDoctors(list){
+    // إذا البيانات غير صحيحة أو ناقصة، رجّع الافتراضي
+    if(!Array.isArray(list) || list.length === 0) return DEFAULT_DOCTORS;
+
+    // املأ أي نقص (خصوصًا img) بدون تغيير أي شيء آخر
+    return list.map((d, i) => {
+      const fallback = DEFAULT_DOCTORS[i] || DEFAULT_DOCTORS[0];
+      return {
+        id: (d && d.id) ? d.id : fallback.id,
+        img: (d && d.img) ? d.img : fallback.img,
+        name: (d && d.name) ? d.name : fallback.name,
+        specialty: (d && d.specialty) ? d.specialty : fallback.specialty,
+      };
+    });
+  }
+
+  function loadDoctors(){
+    const saved = localStorage.getItem("doctorsData");
+    if(!saved) return DEFAULT_DOCTORS;
+
+    try{
+      return normalizeDoctors(JSON.parse(saved));
+    }catch(e){
+      return DEFAULT_DOCTORS;
+    }
+  }
+
+  function saveDoctors(data){
+    localStorage.setItem("doctorsData", JSON.stringify(data));
+  }
+
+  let doctors = loadDoctors();
+
+  const grid = document.getElementById("doctorsGrid");
+
+  function renderDoctors(){
+    // نفس الكروت كما هي (نفس class card/grid) بدون تغيير CSS
+    grid.innerHTML = doctors.map(d => `
+      <a href="thedoctor.html" class="card">
+        <img src="${d.img}">
+        <h3>${d.name}</h3>
+        <p>${d.specialty}</p>
+      </a>
+    `).join("");
+  }
+
+  // طبّق البيانات على الصفحة مباشرة
+  renderDoctors();
+
+  // لوحة الأدمن
+  const panel = document.getElementById("adminDoctorsPanel");
+  const editor = document.getElementById("adminDoctorsEditor");
+  const saveBtn = document.getElementById("saveDoctorsBtn");
+  const msg = document.getElementById("adminDoctorsMsg");
+
+  function renderEditor(){
+    editor.innerHTML = doctors.map((d, idx)=>`
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <input data-idx="${idx}" data-field="name" value="${d.name}" style="width:100%">
+        <input data-idx="${idx}" data-field="specialty" value="${d.specialty}" style="width:100%">
+      </div>
+    `).join("");
+  }
+
+  if(role === "admin"){
+    panel.style.display = "block";
+    renderEditor();
+
+    saveBtn.addEventListener("click", ()=>{
+      editor.querySelectorAll("input[data-idx]").forEach(inp=>{
+        const idx = +inp.dataset.idx;
+        const field = inp.dataset.field;
+        doctors[idx][field] = inp.value.trim();
+      });
+
+      // حافظ على الصور كما هي + صحح أي نقص قبل الحفظ
+      doctors = normalizeDoctors(doctors);
+
+      saveDoctors(doctors);
+      renderDoctors();
+
+      msg.textContent = "✅ تم حفظ التعديلات";
+      msg.style.color = "green";
+    });
+  }
+});
+</script>
+
+</body>
+
+</html>
